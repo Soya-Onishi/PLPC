@@ -132,5 +132,8 @@ class Parser extends JavaTokenParsers {
       case "false" => Bool(BoolConst(false))
     }
 
+  val reserved: Parser[String] = ( "val" | "var" | "if" | "for" | "while" )
 
+  override def ident: Parser[String] =
+    not(reserved) ~> super.ident
 }
