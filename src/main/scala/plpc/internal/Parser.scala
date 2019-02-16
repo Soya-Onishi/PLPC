@@ -86,8 +86,14 @@ class Parser extends JavaTokenParsers {
     }
 
   def prefixExpr: Parser[AST] =
-    ("-" | "!") ~ simpleExpr ^^ {
-      case op ~ s => UnaryOp(op, s)
+    opt("-" | "!" | "+") ~ simpleExpr ^^ {
+      case op ~ s => op match {
+        case None => s
+        case Some(o) => o match {
+          case "-" | "!" => UnaryOp(o, s)
+          case "+"       => s
+        }
+      }
     }
 
   def simpleExpr: Parser[AST] = funCallOrFactor | blockExpr
