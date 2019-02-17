@@ -6,9 +6,9 @@ import java.io.Reader
 class Parser extends JavaTokenParsers {
   def apply(in: String) = parseAll(top, in)
 
-  def top: Parser[List[AST]] =
+  def top: Parser[AST] =
     repsep(defineOrExpr, separate) ~ opt(separate) ^^ {
-      case list ~ _ => list
+      case list ~ _ => Root(list)
     }
 
   def defineOrExpr: Parser[AST] =

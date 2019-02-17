@@ -36,6 +36,19 @@ class Environment(parent: Option[Environment]) {
     }
   }
 
+  def setenv(name: String, value: Value): Unit = {
+    table.get(name) match {
+      case Some(v) => v match {
+        case VarValue(_) => table(name) = VarValue(value)
+        case _ => throw new NotAssignableException(s"$name is not assignable")
+      }
+      case None => parent match {
+        case Some(p) => p.setenv(name, value)
+        case None => throw new NotFoundException(s"$name is not found")
+      }
+    }
+  }
+
   def dump(): String = {
     table.keysIterator.foldLeft("") { (s, k) =>
       val newLine = table.get(k) match {

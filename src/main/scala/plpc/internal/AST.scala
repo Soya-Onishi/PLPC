@@ -2,6 +2,7 @@ package plpc.internal
 
 sealed abstract class AST
 
+case class Root(asts: List[AST]) extends AST
 case class ValDef(name: String, expr: AST) extends AST
 case class VarDef(name: String, expr: AST) extends AST
 case class FunDef(name: String, expr: Fun) extends AST
