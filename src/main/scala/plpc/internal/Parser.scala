@@ -23,15 +23,15 @@ class Parser extends JavaTokenParsers {
   def define: Parser[AST] = varDef | funDef
 
   def varDef: Parser[AST] =
-    ("val" | "var") ~ ident ~ "=" ~ expr ^^ {
-      case modifier ~ id ~ _ ~ e => modifier match {
+    ("val" | "var") ~ ident ~ opt(":" ~ varType) ~ "=" ~ expr ^^ {
+      case modifier ~ id ~ t ~ _ ~ e => modifier match {
         case "val" => ValDef(id.toString, e)
         case "var" => VarDef(id.toString, e)
       }
     }
 
   def funDef: Parser[AST] =
-    "def" ~ ident ~ "(" ~ opt(repsep(ident, ",")) ~ ")" ~ "=" ~ expr ^^ {
+    "def" ~ ident ~ "(" ~ opt(repsep(param, ",")) ~ ")" ~ "=" ~ expr ^^ {
       case _ ~ id ~ _ ~ params ~ _ ~ _ ~ body =>
         FunDef(
           id.toString,
@@ -41,6 +41,17 @@ class Parser extends JavaTokenParsers {
           )
         )
     }
+
+  def param: Parser[AST] =
+    ident ~ ":" ~ varType ^^ {
+
+    }
+
+  def varType: Parser[AST] =
+    primitiveType | functionType
+
+  def primitiveType: Parser[AST] =
+
 
   def expr: Parser[AST] =
     ifExpr | assignExpr | condExpr | blockExpr
