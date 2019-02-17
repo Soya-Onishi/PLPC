@@ -87,4 +87,34 @@ class ParserTester extends FlatSpec with Matchers {
       """def function()"""
     ).successful == false)
   }
+
+  "If expression" should "success" in {
+    assert(parser("if(a == 10) b = 20 else b = 10").successful == true)
+    assert(parser(
+      """
+        |if(a == 10) {
+        |  b = 20
+        |} else {
+        |  b = 10
+        |}
+      """.stripMargin
+    ).successful == true)
+    assert(parser(
+      """
+        |if(a == 10) {
+        |  b = 20
+        |} else
+        |  b = 10
+      """.stripMargin
+    ).successful == true)
+    assert(parser(
+      """
+        |if(a == 10) {} else {}
+      """.stripMargin
+    ).successful == true)
+  }
+
+  it should "fail" in {
+    assert(parser("if(a == 10) b = 20").successful == false)
+  }
 }
