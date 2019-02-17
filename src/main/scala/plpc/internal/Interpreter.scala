@@ -86,6 +86,16 @@ class Interpreter {
     case _ => Wrong
   }
 
+  private def logicalAnd(a: Value, b: Value): Value = (a, b) match {
+    case (BoolConst(x), BoolConst(y)) => BoolConst(x && y)
+    case _ => Wrong
+  }
+
+  private def logicalOr(a: Value, b: Value): Value = (a, b) match {
+    case (BoolConst(x), BoolConst(y)) => BoolConst(x || y)
+    case _ => Wrong
+  }
+
   private val binOpMap = Map[String, (Value, Value) => Value](
     "+" -> add,
     "-" -> sub,
@@ -97,7 +107,9 @@ class Interpreter {
     "<" -> lt,
     "<=" -> lte,
     ">" -> gt,
-    ">=" -> gte
+    ">=" -> gte,
+    "&&" -> logicalAnd,
+    "||" -> logicalOr
   )
 
   private val unaryOpMap = Map[String, Value => Value](

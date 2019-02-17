@@ -55,7 +55,28 @@ class Parser extends JavaTokenParsers {
       case id ~ _ ~ e => Assign(Var(id.toString), e)
     }
 
-  def condExpr: Parser[AST] =
+  def condExpr: Parser[AST] = logicalOrExpr
+  def logicalOrExpr: Parser[AST] =
+    logicalAndExpr ~ rep("||" ~ logicalAndExpr) ^^ {
+      case left ~ right =>
+        right.foldLeft(left){ (x, y) =>
+          y match {
+            case op ~ e => BinOp(op, x, e)
+          }
+        }
+    }
+
+  def logicalAndExpr: Parser[AST] =
+    compExpr ~ rep("&&" ~ compExpr) ^^ {
+      case left ~ right =>
+        right.foldLeft(left) { (x, y) =>
+          y match {
+            case op ~ e => BinOp(op, x, e)
+          }
+        }
+    }
+
+  def compExpr: Parser[AST] =
     additiveExpr ~ rep(("==" | "!=" | "<=" | "<" | ">=" | ">") ~ additiveExpr) ^^ {
       case left ~ right =>
         right.foldLeft(left) { (x, y) =>
