@@ -7,8 +7,8 @@ class Parser extends JavaTokenParsers {
   def apply(in: String) = parseAll(top, in)
 
   def top: Parser[List[AST]] =
-    defineOrExpr ~ rep(rep(separate) ~> defineOrExpr) ^^ {
-      case head ~ tail => head :: tail
+    repsep(defineOrExpr, separate) ~ opt(separate) ^^ {
+      case list ~ _ => list
     }
 
   def defineOrExpr: Parser[AST] =
@@ -115,8 +115,8 @@ class Parser extends JavaTokenParsers {
     "{" ~> block <~ "}" ^^ { BlockExpr(_) }
 
   def block: Parser[List[AST]] =
-    opt(repsep(defineOrExpr, separate)) ^^ {
-      _.getOrElse(Nil)
+    opt(repsep(defineOrExpr, separate)) ~ opt(separate) ^^ {
+      case x ~ _ => x.getOrElse(Nil)
     }
 
   def literal: Parser[AST] =
