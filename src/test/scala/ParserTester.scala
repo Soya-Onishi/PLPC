@@ -13,6 +13,12 @@ class ParserTester extends FlatSpec with Matchers {
     assert(parser("var a = 20; var b = 10;").successful == true)
     assert(parser("var a = 20; val b = 10").successful == true)
     assert(parser("val a = 20; var b = 10").successful == true)
+    assert(parser(
+      """
+        |val a = 20
+        |val b = 10
+      """.stripMargin).successful == true)
+    assert(parser("val a = b").successful == true)
   }
 
   it should "fail" in {
