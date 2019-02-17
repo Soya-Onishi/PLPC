@@ -18,7 +18,7 @@ class Parser extends JavaTokenParsers {
     (";" | newLine) ^^ { _ => Separate }
 
   def newLine: Parser[AST] =
-    "\n" ^^ { _ => NewLine }
+    '\n' ^^ { _ => NewLine }
 
   def define: Parser[AST] = varDef | funDef
 
@@ -43,7 +43,7 @@ class Parser extends JavaTokenParsers {
     }
 
   def expr: Parser[AST] =
-    ifExpr | assignExpr | condExpr
+    ifExpr | assignExpr | condExpr | blockExpr
 
   def ifExpr: Parser[AST] =
     "if" ~ "(" ~ condExpr ~ ")" ~ expr ~ "else" ~ expr ^^ {
@@ -86,7 +86,7 @@ class Parser extends JavaTokenParsers {
     }
 
   def prefixExpr: Parser[AST] =
-    opt("-" | "!" | "+") ~ simpleExpr ^^ {
+    opt("-" | "!" | "+") ~ funCallOrFactor ^^ {
       case op ~ s => op match {
         case None => s
         case Some(o) => o match {
@@ -95,8 +95,6 @@ class Parser extends JavaTokenParsers {
         }
       }
     }
-
-  def simpleExpr: Parser[AST] = funCallOrFactor | blockExpr
 
   def funCallOrFactor: Parser[AST] =
     factor ~ opt("(" ~> opt(repsep(expr, ",")) <~ ")") ^^ {
