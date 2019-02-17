@@ -18,7 +18,7 @@ object REPL extends App {
 
   while (continue) {
     read(prompt) match {
-      case None =>
+      case None => println()
       case Some(t) =>
         if (t == ":q")
           continue = false
@@ -26,8 +26,8 @@ object REPL extends App {
           val ast = parser(t)
           if (ast.successful) {
             try {
+              println()
               val value = interpreter.eval(ast.get)
-
               println(s" ===> $value")
             } catch {
               case NotFoundException(m, _) => println(m)
