@@ -23,47 +23,55 @@ class Parser extends JavaTokenParsers {
   def define: Parser[AST] = varDef | funDef
 
   def varDef: Parser[AST] =
-    ("val" | "var") ~ ident ~ opt(":" ~ varType) ~ "=" ~ expr ^^ {
-      case modifier ~ id ~ t ~ _ ~ e => modifier match {
-        case "val" => ValDef(id.toString, e)
-        case "var" => VarDef(id.toString, e)
-      }
+    ("val" | "var") ~ ident ~ opt(":" ~> defType) ~ "=" ~ expr ^^ {
+      case modifier ~ id ~ t ~ _ ~ e =>
+        val varType = t match {
+          case Some(vt) => vt
+          case None => NoType
+        }
+
+        modifier match {
+          case "val" => ValDef(varType, id.toString, e)
+          case "var" => VarDef(varType, id.toString, e)
+        }
     }
 
   def funDef: Parser[AST] =
-    "def" ~ ident ~ "(" ~ opt(repsep(param, ",")) ~ ")" ~ "=" ~ expr ^^ {
-      case _ ~ id ~ _ ~ params ~ _ ~ _ ~ body =>
+    "def" ~ ident ~ "(" ~ repsep(param, ",") ~ ")" ~ (":" ~> defType) ~ "=" ~ expr ^^ {
+      case _ ~ id ~ _ ~ params ~ _ ~ t ~ _ ~ body =>
         FunDef(
+          t,
           id.toString,
           Fun(
-            params.getOrElse(Nil).map { _.toString },
-            body
+            t, params, body
           )
         )
     }
 
-  def param: Parser[AST] =
-    ident ~ ":" ~ varType ^^ {
-
+  def param: Parser[(String, Type)] =
+    ident ~ ":" ~ defType ^^ {
+      case id ~ _ ~ t => (id, t)
     }
 
-  def varType: Parser[AST] =
-    primitiveType | functionType
-
-  def primitiveType: Parser[AST] =
-
+  def defType: Parser[Type] =
+    ("Unit" | "Int" | "String" | "Bool") ^^ {
+      case "Unit" => UnitType
+      case "Int" => IntType
+      case "String" => StringType
+      case "Bool" => BoolType
+    }
 
   def expr: Parser[AST] =
     ifExpr | assignExpr | condExpr | blockExpr
 
   def ifExpr: Parser[AST] =
     "if" ~ "(" ~ condExpr ~ ")" ~ expr ~ "else" ~ expr ^^ {
-      case _ ~ _ ~ cond ~ _ ~ e1 ~ _ ~ e2 => IfExpr(cond, e1, e2)
+      case _ ~ _ ~ cond ~ _ ~ e1 ~ _ ~ e2 => IfExpr(NoType, cond, e1, e2)
     }
 
   def assignExpr: Parser[AST] =
     ident ~ "=" ~ expr ^^ {
-      case id ~ _ ~ e => Assign(Var(id.toString), e)
+      case id ~ _ ~ e => Assign(UnitType, Var(NoType, id.toString), e)
     }
 
   def condExpr: Parser[AST] =
@@ -71,7 +79,7 @@ class Parser extends JavaTokenParsers {
       case left ~ right =>
         right.foldLeft(left) { (x, y) =>
           y match {
-            case op ~ e => BinOp(op, x, e)
+            case op ~ e => BinOp(NoType, op, x, e)
           }
         }
     }
@@ -81,7 +89,7 @@ class Parser extends JavaTokenParsers {
       case left ~ right =>
         right.foldLeft(left) { (x, y) =>
           y match {
-            case op ~ t => BinOp(op, x, t)
+            case op ~ t => BinOp(NoType, op, x, t)
           }
         }
     }
@@ -91,7 +99,7 @@ class Parser extends JavaTokenParsers {
       case left ~ right =>
         right.foldLeft(left) { (x, y) =>
           y match {
-            case op ~ p => BinOp(op, x, p)
+            case op ~ p => BinOp(NoType, op, x, p)
           }
         }
     }
@@ -101,8 +109,8 @@ class Parser extends JavaTokenParsers {
       case op ~ s => op match {
         case None => s
         case Some(o) => o match {
-          case "-" | "!" => UnaryOp(o, s)
-          case "+"       => s
+          case "-" | "!" => UnaryOp(NoType, o, s)
+          case "+" => s
         }
       }
     }
@@ -110,18 +118,18 @@ class Parser extends JavaTokenParsers {
   def funCallOrFactor: Parser[AST] =
     factor ~ opt("(" ~> opt(repsep(expr, ",")) <~ ")") ^^ {
       case f ~ args => args match {
-        case Some(as) => FunCall(f, as.getOrElse(Nil))
+        case Some(as) => FunCall(NoType, f, as.getOrElse(Nil))
         case None => f
       }
     }
 
   def factor: Parser[AST] =
     literal | ident ^^ {
-      n => Var(n.toString)
+      n => Var(NoType, n.toString)
     } | "(" ~> expr <~ ")"
 
   def blockExpr: Parser[AST] =
-    "{" ~> block <~ "}" ^^ { BlockExpr(_) }
+    "{" ~> block <~ "}" ^^ { BlockExpr(NoType, _) }
 
   def block: Parser[List[AST]] =
     opt(repsep(defineOrExpr, separate)) ~ opt(separate) ^^ {
@@ -130,7 +138,7 @@ class Parser extends JavaTokenParsers {
 
   def literal: Parser[AST] =
     boolLit | wholeNumber ^^ {
-      n => Number(IntConst(n.toInt))
+      n => Number(IntType, IntConst(n.toInt))
     } | stringLiteral ^^ {
       s => Str(StrConst(s.substring(1, s.length - 1)))
     }
@@ -141,7 +149,7 @@ class Parser extends JavaTokenParsers {
       case "false" => Bool(BoolConst(false))
     }
 
-  val reserved: Parser[String] = ( "val" | "var" | "if" | "for" | "while" )
+  val reserved: Parser[String] = ("val" | "var" | "if" | "for" | "while")
 
   override def ident: Parser[String] =
     not(reserved) ~> super.ident
