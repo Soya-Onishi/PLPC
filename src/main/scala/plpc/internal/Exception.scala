@@ -8,3 +8,4 @@ final case class InvalidASTException(message: String, cause: Throwable = None.or
 
 final case class NotTypeInferrableException(message: String, cause: Throwable = None.orNull) extends Exception(message, cause)
 final case class TypeMissMatchException(message: String, cause: Throwable = None.orNull) extends Exception(message, cause)
+final case class InvalidOperationException(message: String, cause: Throwable = None.orNull) extends Exception(message, cause)
