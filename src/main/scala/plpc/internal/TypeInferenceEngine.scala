@@ -14,7 +14,7 @@ class TypeInferenceEngine {
 
         binOpMap(op)(op, newLeft.getType, newRight.getType) match {
           case Some(t) => BinOp(t, op, newLeft, newRight)
-          case None => throw NotTypeInferrableException(s"${left.getType} $op ${right.getType} can not infer type")
+          case None => throw NotTypeInferrableException(s"${newLeft.getType} $op ${newRight.getType} can not infer type")
         }
       case UnaryOp(t, op, operand) =>
         val newOperand = infer(operand, env)
@@ -22,7 +22,7 @@ class TypeInferenceEngine {
 
         op match {
           case "+" | "-" => UnaryOp(operandType, op, newOperand)
-          case "!" => operandType {
+          case "!" => operandType match {
             case BoolType => UnaryOp(operandType, op, newOperand)
             case _ => throw NotTypeInferrableException(s"$op $operandType can not infer type")
           }
@@ -40,6 +40,7 @@ class TypeInferenceEngine {
 
         val newLeft = left match {
           case Var(_, id) => Var(newRight.getType, id)
+          case _ => ???
         }
 
         Assign(t, newLeft, newRight)
@@ -68,10 +69,17 @@ class TypeInferenceEngine {
       case ValDef(t, name, e) =>
         val expr = infer(e, env)
 
+
+        if (t != expr.getType && t != NoType)
+          throw TypeMissMatchException(s"expected type is $t, but actual ${expr.getType}")
+
         env.reg(name, expr.getType)
         ValDef(expr.getType, name, expr)
-      case VarDef(_, name, e) =>
+      case VarDef(t, name, e) =>
         val expr = infer(e, env)
+
+        if (t != expr.getType && t != NoType)
+          throw TypeMissMatchException(s"expected type is $t, but actual ${expr.getType}")
 
         env.reg(name, expr.getType)
         VarDef(expr.getType, name, expr)
@@ -79,6 +87,7 @@ class TypeInferenceEngine {
         def getReturnType(t: Type, fun: Fun): Type = {
           val returnType = fun.getType match {
             case FuncType(rt, _) => rt
+            case _ => ???
           }
 
           if (t == NoType) returnType
@@ -92,28 +101,38 @@ class TypeInferenceEngine {
         val fun = infer(f, env)
 
         FunDef(getReturnType(t, fun), name, fun)
-      case FunCall(_, f, args) =>
+      case FunCall(t, f, args) =>
         val fun = infer(f, env)
 
-        val (returnType, paramTypes) = fun.getType match {
-          case FuncType(rt, pts) => (rt, pts)
-          case _ => (NoType, Nil)
+        val funName = fun match {
+          case Var(_, id) => id
+          case _ => ???
+        }
+
+        val (returnType, paramTypes) = env.get(funName) match {
+          case None => throw NotFoundException(s"$funName not found as function")
+          case Some(funcType) => funcType match {
+            case FuncType(rt, pts) => (rt, pts)
+            case _ => throw InvalidFunctionCallException(s"$funName is not function")
+          }
         }
 
         val inferredArgs = args.map(infer(_, env))
-        val argTypes = inferredArgs.map{_.getType}
+        val argTypes = inferredArgs.map { _.getType }
 
-        if(paramTypes.length != argTypes.length)
+        if (paramTypes.length != argTypes.length)
           throw InvalidFunctionCallException(s"function expected ${paramTypes.length} parameters, but actual ${inferredArgs.length}")
         else {
           argTypes.zip(paramTypes).zipWithIndex.foreach {
             case (tuple, id) => tuple match {
               case (a, p) if a != p => throw InvalidFunctionCallException(s"function ${id}rd arguments type expected $p, but actual $a")
+              case _ =>
             }
           }
         }
 
         FunCall(returnType, fun, inferredArgs)
+      case _ => ???
     }
   }
 
