@@ -23,40 +23,40 @@ class Interpreter {
     case (IntConst(x), StrConst(y)) => StrConst(x.toString + y)
     case (StrConst(x), BoolConst(y)) => StrConst(x + y.toString)
     case (BoolConst(x), StrConst(y)) => StrConst(x.toString + y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} + ${b.getType} is illegal")
   }
 
   private def sub(a: Value, b: Value): Value = (a, b) match {
     case (IntConst(x), IntConst(y)) => IntConst(x - y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} - ${b.getType} is illegal")
   }
 
   private def mul(a: Value, b: Value): Value = (a, b) match {
     case (IntConst(x), IntConst(y)) => IntConst(x * y)
     case (StrConst(x), IntConst(y)) => StrConst(x * y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} * ${b.getType} is illegal")
   }
 
   private def div(a: Value, b: Value): Value = (a, b) match {
     case (IntConst(x), IntConst(y)) => IntConst(x / y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} / ${b.getType} is illegal")
   }
 
   private def mod(a: Value, b: Value): Value = (a, b) match {
     case (IntConst(x), IntConst(y)) => IntConst(x % y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} % ${b.getType} is illegal")
   }
 
   private def negate(a: Value): Value = a match {
     case IntConst(x) => IntConst(-x)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"negate ${a.getType} is illegal")
   }
 
   private def compare(a: Value, b: Value)(f: (Int, Int) => Boolean): Value = (a, b) match {
     case (IntConst(x), IntConst(y)) => BoolConst(f(x, y))
     case (StrConst(x), StrConst(y)) => BoolConst(f(x.compareTo(y), 0))
     case (BoolConst(x), BoolConst(y)) => BoolConst(f(x.compareTo(y), 0))
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"compare ${a.getType} and ${b.getType} is illegal")
   }
 
   private def eq(a: Value, b: Value): Value = compare(a, b)(_ == _)
@@ -83,7 +83,7 @@ class Interpreter {
 
   private def logicalNot(a: Value): Value = a match {
     case BoolConst(v) => BoolConst(!v)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"not ${a.getType} is illegal")
   }
 
   private val binOpMap = Map[String, (Value, Value) => Value](
@@ -120,46 +120,46 @@ class Interpreter {
     case Root(asts) => asts.foldLeft(NoValue: Value){
       (_, ast) => eval(ast, env)
     }
-    case BinOp(op, left, right) =>
+    case BinOp(_, op, left, right) =>
       binOpMap(op)(eval(left, env), eval(right, env))
-    case UnaryOp(op, operand) =>
+    case UnaryOp(_, op, operand) =>
       unaryOpMap(op)(eval(operand, env))
-    case Number(n) => n
+    case Number(_, n) => n
     case Str(s) => s
     case Bool(b) => b
-    case Var(n) => env.lookup(n) match {
+    case Var(_, n) => env.lookup(n) match {
       case Some(x) => x
       case None => throw new NotFoundException(s"$n is not found")
     }
-    case Assign(Var(n), right) =>
+    case Assign(_, Var(_, n), right) =>
       env.setenv(n, eval(right))
       NoValue
-    case IfExpr(cond, ifExpr, elseExpr) => eval(cond, env) match {
+    case IfExpr(_, cond, ifExpr, elseExpr) => eval(cond, env) match {
       case BoolConst(true) => eval(ifExpr, env)
       case BoolConst(false) => eval(elseExpr, env)
       case _ => throw new InvalidConditionValueException("conditional expression value must be boolean")
     }
-    case BlockExpr(asts) => {
+    case BlockExpr(_, asts) => {
       val localEnv = new Environment(Some(env))
       asts.foldLeft(NoValue: Value)((_, ast) => eval(ast, localEnv))
     }
-    case ValDef(name, right) =>
+    case ValDef(_, name, right) =>
       env.regVal(name, eval(right, env))
       NoValue
-    case VarDef(name, right) =>
+    case VarDef(_, name, right) =>
       env.regVar(name, eval(right, env))
       NoValue
-    case FunDef(name, function) =>
+    case FunDef(_, name, function) =>
       env.regFun(name, Closure(function, env))
       NoValue
-    case FunCall(name, args) =>
+    case FunCall(_, name, args) =>
       eval(name, env) match {
-        case Closure(Fun(params, proc), e) =>
+        case Closure(Fun(_, params, proc), e) =>
           if(params.length != args.length)
             throw new InvalidFunctionCallException(s"function needs ${params.length} parameters but send ${args.length}")
 
           val localEnv = new Environment(Some(e))
-          params.zip(args).foreach{ case (p, a) => localEnv.regVal(p, eval(a, env))}
+          params.zip(args).foreach{ case (p, a) => localEnv.regVal(p._1, eval(a, env))}
           eval(proc, localEnv)
         case _ => throw new InvalidFunctionCallException("this object is not function")
       }
