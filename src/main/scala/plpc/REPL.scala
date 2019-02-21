@@ -13,6 +13,7 @@ object REPL extends App {
 
   val prompt = "PLPC > "
   val interpreter = new Interpreter
+  val inferrer = new TypeInferenceEngine
   val parser = new Parser
   var continue = true
 
@@ -24,9 +25,11 @@ object REPL extends App {
           continue = false
         else {
           val ast = parser(t)
+          println()
+
           if (ast.successful) {
             try {
-              println()
+              inferrer(ast.get)
               val value = interpreter.eval(ast.get)
               println(s" ===> $value")
             } catch {
@@ -35,6 +38,9 @@ object REPL extends App {
               case InvalidConditionValueException(m, _) => println(m)
               case InvalidFunctionCallException(m, _) => println(m)
               case InvalidASTException(m, _) => println(m)
+              case NotTypeInferrableException(m, _) => println(m)
+              case TypeMissMatchException(m, _) => println(m)
+              case InvalidOperationException(m, _) => println(m)
             }
           }
         }
