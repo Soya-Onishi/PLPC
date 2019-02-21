@@ -88,12 +88,12 @@ class Interpreter {
 
   private def logicalAnd(a: Value, b: Value): Value = (a, b) match {
     case (BoolConst(x), BoolConst(y)) => BoolConst(x && y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} && ${b.getType} is illegal")
   }
 
   private def logicalOr(a: Value, b: Value): Value = (a, b) match {
     case (BoolConst(x), BoolConst(y)) => BoolConst(x || y)
-    case _ => Wrong
+    case _ => throw InvalidOperationException(s"${a.getType} || ${b.getType} is illegal")
   }
 
   private val binOpMap = Map[String, (Value, Value) => Value](

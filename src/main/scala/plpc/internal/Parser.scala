@@ -82,7 +82,7 @@ class Parser extends JavaTokenParsers {
       case left ~ right =>
         right.foldLeft(left){ (x, y) =>
           y match {
-            case op ~ e => BinOp(op, x, e)
+            case op ~ e => BinOp(NoType, op, x, e)
           }
         }
     }
@@ -92,7 +92,7 @@ class Parser extends JavaTokenParsers {
       case left ~ right =>
         right.foldLeft(left) { (x, y) =>
           y match {
-            case op ~ e => BinOp(op, x, e)
+            case op ~ e => BinOp(NoType, op, x, e)
           }
         }
     }
