@@ -37,13 +37,15 @@ class Parser extends JavaTokenParsers {
     }
 
   def funDef: Parser[AST] =
-    "def" ~ ident ~ "(" ~ repsep(param, ",") ~ ")" ~ (":" ~> defType) ~ "=" ~ expr ^^ {
+    "def" ~ ident ~ "(" ~ repsep(param, ",") ~ ")" ~ opt(":" ~> defType) ~ "=" ~ expr ^^ {
       case _ ~ id ~ _ ~ params ~ _ ~ t ~ _ ~ body =>
+        val returnType = t.getOrElse(NoType)
+
         FunDef(
-          t,
+          returnType,
           id.toString,
           Fun(
-            t, params, body
+            returnType, params, body
           )
         )
     }
@@ -116,9 +118,9 @@ class Parser extends JavaTokenParsers {
     }
 
   def funCallOrFactor: Parser[AST] =
-    factor ~ opt("(" ~> opt(repsep(expr, ",")) <~ ")") ^^ {
+    factor ~ opt("(" ~> repsep(expr, ",") <~ ")") ^^ {
       case f ~ args => args match {
-        case Some(as) => FunCall(NoType, f, as.getOrElse(Nil))
+        case Some(as) => FunCall(NoType, f, as)
         case None => f
       }
     }
