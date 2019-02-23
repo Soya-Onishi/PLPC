@@ -39,7 +39,11 @@ class TypeInferenceEngine {
         val newRight = infer(right, env)
 
         val newLeft = left match {
-          case Var(_, id) => Var(newRight.getType, id)
+          case Var(leftType, id) =>
+            if(leftType != newRight.getType)
+              throw TypeMissMatchException(s"expected $leftType, but actual ${newRight.getType}")
+
+            Var(leftType, id)
           case _ => ???
         }
 
@@ -100,7 +104,10 @@ class TypeInferenceEngine {
         env.reg(name, funcType)
         val fun = infer(f, env)
 
-        FunDef(getReturnType(t, fun), name, fun)
+        val returnType = getReturnType(t, fun)
+        env.reg(name, FuncType(returnType, f.params.map{ _._2 }))
+
+        FunDef(returnType, name, fun)
       case FunCall(t, f, args) =>
         val fun = infer(f, env)
 
@@ -125,7 +132,7 @@ class TypeInferenceEngine {
         else {
           argTypes.zip(paramTypes).zipWithIndex.foreach {
             case (tuple, id) => tuple match {
-              case (a, p) if a != p => throw InvalidFunctionCallException(s"function ${id}rd arguments type expected $p, but actual $a")
+              case (a, p) if a != p => throw TypeMissMatchException(s"function ${id}rd arguments type expected $p, but actual $a")
               case _ =>
             }
           }
