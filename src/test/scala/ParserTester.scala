@@ -51,13 +51,13 @@ class ParserTester extends FlatSpec with Matchers {
 
     assert(parser(
       """
-        |def function(n) = n
+        |def function(n: Int) = n
       """.stripMargin
     ).successful == true)
 
     assert(parser(
       """
-        |def function(m, n) = n + m
+        |def function(m: Int, n: Int) = n + m
       """.stripMargin
     ).successful == true)
   }
@@ -86,6 +86,11 @@ class ParserTester extends FlatSpec with Matchers {
     assert(parser(
       """def function()"""
     ).successful == false)
+
+    assert(parser(
+      """def function(n) = n"""
+    ).successful == false)
+
   }
 
   "If expression" should "success" in {
